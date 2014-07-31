@@ -7,19 +7,32 @@ cli.py
 http://pyclie.toofifty.me/
 """
 
+# Libs
 import traceback
 import os
 import time
 import sys
 import msvcrt
 from threading import Thread
+from colorama import init, Fore, Back
+init()
+
+# Internal
+from color import Colors as c
 
 FRAME_RATE = 10.0
 LARGER_WIDTH = False
 
+symbol_colors = {
+    '#' : Fore.RED,
+    chr(219) : Fore.CYAN,
+    '.' : Fore.BLUE,
+    'default' : Fore.WHITE,
+}
+
 def load_level(name):
     try:
-        path = os.path.join('../levels/' + name + '.srpg')
+        path = os.path.join('../levels/' + name + '.cll')
         with open(path, 'r') as level_file:
             level_array = []
             [level_array.append(piece) for piece in level_file.read()]
@@ -32,11 +45,21 @@ def load_level(name):
 def draw_level(array):
     t = time.time()
     out = ''
-    c = 1
+    current_color = None
     for char in array:
-        out += char
-        c = c + 1
-    print out
+        if char in symbol_colors:
+            if current_color is not symbol_colors[char]:
+                out += symbol_colors[char] + char
+                current_color = symbol_colors[char]
+            else:
+                out += char
+        else:
+            if current_color is not Fore.WHITE:
+                out += Fore.WHITE + char
+                current_color = Fore.WHITE
+            else:
+                out += char
+    print out + symbol_colors['default']
     return (time.time() - t)
     
 class SceneRenderer(Thread):    
@@ -51,6 +74,7 @@ class SceneRenderer(Thread):
         while self.running:
             if self.level_update:
                 os.system('cls')
+                print 'PyCLIE v0.0.2a'
                 delta_time = draw_level(self.level_array)
                 try:
                     cycle_time = time.time() - temp_time
@@ -63,8 +87,9 @@ class SceneRenderer(Thread):
                 except:
                     traceback.print_exc()
                 self.level_update = False
+            else:
+                time.sleep(1.0 / FRAME_RATE)
             temp_time = time.time()
-            time.sleep(1.0 / FRAME_RATE)
             
     def update_level(self, new_array):
         self.level_array = new_array
@@ -111,17 +136,17 @@ def accept_input(c, nl, l):
         try:
             getch = msvcrt.getch().encode('hex')
             if getch == '48': # up
-                c.move(1, 3)
-                nl = sr.update_level(move_char(c, nl, l))
+                ch.move(1, 3)
+                nl = sr.update_level(move_char(ch, nl, l))
             elif getch == '4d': # right
-                c.move(1, 0)
-                nl = sr.update_level(move_char(c, nl, l))
+                ch.move(1, 0)
+                nl = sr.update_level(move_char(ch, nl, l))
             elif getch == '4b': # left
-                c.move(1, 2)
-                nl = sr.update_level(move_char(c, nl, l))
+                ch.move(1, 2)
+                nl = sr.update_level(move_char(ch, nl, l))
             elif getch == '50': # down
-                c.move(1, 1)   
-                nl = sr.update_level(move_char(c, nl, l))
+                ch.move(1, 1)   
+                nl = sr.update_level(move_char(ch, nl, l))
             elif getch == '1b': # esc
                 accepting_input = False
         except:
@@ -130,12 +155,12 @@ def accept_input(c, nl, l):
 if __name__ == '__main__':
     l = load_level('basic')
     l2 = load_level('basic2')
-    c = Char('@', [40, 10])
+    ch = Char(chr(219), [40, 10])
     nl = l[:]
-    nl = move_char(c, nl, l)
+    nl = move_char(ch, nl, l)
     sr = SceneRenderer(l)
     sr.start()
-    accept_input(c, nl, l)    
+    accept_input(ch, nl, l)    
     sr.close()
     
     
